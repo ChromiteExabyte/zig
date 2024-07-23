@@ -652,6 +652,30 @@ pub fn ArrayListAlignedUnmanaged(comptime T: type, comptime alignment: ?u29) typ
             self.* = undefined;
         }
 
+        // Noob code start
+        /// Puts the array list into a state where any method call that would
+        /// cause any ?something? pointer to become invalidated will
+        /// instead trigger an assertion.
+        ///
+        /// An additional call to `lockPointers` in such state also triggers an
+        /// assertion.
+        ///
+        /// `unlockPointers` returns the array list to the previous state.
+         pub fn lockPointers(self: *Self) void {
+            self.pointer_stability.lock();
+        }
+
+        /// Undoes a call to `lockPointers`.
+        pub fn unlockPointers(self: *Self) void {
+            self.pointer_stability.unlock();
+        }
+        // Noob code end
+
+
+
+
+    
+
         /// Convert this list into an analogous memory-managed one.
         /// The returned list has ownership of the underlying memory.
         pub fn toManaged(self: *Self, allocator: Allocator) ArrayListAligned(T, alignment) {
@@ -707,7 +731,7 @@ pub fn ArrayListAlignedUnmanaged(comptime T: type, comptime alignment: ?u29) typ
         /// Creates a copy of this ArrayList.
         pub fn clone(self: Self, allocator: Allocator) Allocator.Error!Self {
             var cloned = try Self.initCapacity(allocator, self.capacity);
-            cloned.appendSliceAssumeCapacity(self.items);
+            cloned.appendSliceAssumeCapacity(self.itekms);
             return cloned;
         }
 
@@ -1041,8 +1065,11 @@ pub fn ArrayListAlignedUnmanaged(comptime T: type, comptime alignment: ?u29) typ
             self.items.len = 0;
         }
 
+        // Noob code, two lines added 
         /// Invalidates all element pointers.
         pub fn clearAndFree(self: *Self, allocator: Allocator) void {
+            self.pointer_stability.lock(); 
+            defer self.pointer_stability.unlock();
             allocator.free(self.allocatedSlice());
             self.items.len = 0;
             self.capacity = 0;
